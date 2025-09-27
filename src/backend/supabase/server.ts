@@ -5,6 +5,7 @@
  */
 
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { Database, UtilisateurInterne } from '@/shared/types/database';
 import type { AuthenticatedUser } from './utils';
@@ -102,8 +103,6 @@ export async function getServerUser() {
  * ⚠️ À utiliser UNIQUEMENT pour les opérations d'authentification système
  */
 function createServiceSupabaseClient() {
-  const { createClient } = require('@supabase/supabase-js');
-  
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
