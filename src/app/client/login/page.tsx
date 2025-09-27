@@ -17,8 +17,7 @@ import type { ClientLoginForm } from '@/shared/types/client';
 export default function ClientLoginPage() {
   const [formData, setFormData] = useState<ClientLoginForm>({
     email: '',
-    password: '',
-    remember_me: false
+    password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,9 +49,9 @@ export default function ClientLoginPage() {
 
     setIsSubmitting(true);
     
-    const result = await signIn(formData);
+    const success = await signIn(formData);
     
-    if (result.success) {
+    if (success) {
       router.push(redirectTo);
     }
     
@@ -142,26 +141,10 @@ export default function ClientLoginPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 text-slate-400 hover:text-white"
-                    onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-              </div>
-
-              {/* Se souvenir de moi */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={formData.remember_me}
-                  onCheckedChange={(checked) => 
-                    setFormData(prev => ({ ...prev, remember_me: !!checked }))
-                  }
-                />
-                <Label htmlFor="remember" className="text-slate-300 text-sm">
-                  Se souvenir de moi
-                </Label>
               </div>
 
               {/* Erreur */}
