@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
   
   // Optimisations du build
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // Disabled - requires critters dependency
     optimizePackageImports: ['framer-motion', 'lucide-react'],
   },
   
