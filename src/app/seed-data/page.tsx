@@ -1,6 +1,9 @@
 /**
- * Script pour ajouter des données de test au portfolio
+ * Script pour ajouter des données de test au portfolio (DEV ONLY)
  * Exécuter avec: npm run dev puis visiter /seed-data
+ *
+ * Important: Cette page RESTE un composant client, donc elle NE DOIT PAS importer
+ * de modules serveur. Le seed est effectué via une API route côté serveur.
  */
 
 'use client';
@@ -12,69 +15,26 @@ export default function SeedDataPage() {
   const [loading, setLoading] = useState(false);
 
   const seedPortfolioData = async () => {
-    setLoading(true);
-    setStatus('Ajout des données de portfolio...');
-
-    const portfolioItems = [
-      {
-        titre: "Site Restaurant Le Gourmet",
-        secteur: "restaurant",
-        url_site: "https://legourmet-demo.fr",
-        description_courte: "Site vitrine avec réservation en ligne et menu interactif",
-        technologies_utilisees: ["WordPress", "WooCommerce", "PHP"],
-        image_principale: undefined,
-        ordre_affichage: 1,
-        publie: true
-      },
-      {
-        titre: "Salon de Coiffure Élégance",
-        secteur: "coiffeur", 
-        url_site: "https://salon-elegance-demo.fr",
-        description_courte: "Site moderne avec prise de rendez-vous automatisée",
-        technologies_utilisees: ["React", "Node.js", "MongoDB"],
-        image_principale: undefined,
-        ordre_affichage: 2,
-        publie: true
-      },
-      {
-        titre: "Artisan Menuisier Dupont",
-        secteur: "artisan",
-        url_site: "https://menuiserie-dupont-demo.fr", 
-        description_courte: "Portfolio de réalisations avec galerie photo",
-        technologies_utilisees: ["Next.js", "Tailwind CSS"],
-        image_principale: undefined,
-        ordre_affichage: 3,
-        publie: true
-      },
-      {
-        titre: "Thérapeute Bien-être",
-        secteur: "therapeute",
-        url_site: "https://therapie-sante-demo.fr",
-        description_courte: "Site professionnel avec blog et prise de contact",
-        technologies_utilisees: ["WordPress", "Elementor"],
-        image_principale: undefined,
-        ordre_affichage: 4,
-        publie: true
-      }
-    ];
-
     try {
-      // Utilisons directement la fonction de la base de données
-      const { addPortfolioItem } = await import('@/backend/database/portfolio');
-      
-      for (const item of portfolioItems) {
-        const result = await addPortfolioItem(item);
-        if (!result.success) {
-          throw new Error(`Erreur ajout ${item.titre}: ${result.error?.message}`);
-        }
+      setLoading(true);
+      setStatus('Ajout des données de portfolio...');
+
+      const res = await fetch('/api/seed-portfolio', {
+        method: 'POST'
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Erreur lors du seed du portfolio');
       }
-      
+
       setStatus('✅ Données de portfolio ajoutées avec succès !');
     } catch (error: any) {
       setStatus(`❌ Erreur: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const seedOptionsData = async () => {
@@ -83,7 +43,6 @@ export default function SeedDataPage() {
 
     // TODO: Ajouter des options de test si nécessaire
     setStatus('ℹ️ Options déjà configurées dans la base de données');
-    setLoading(false);
   };
 
   return (
