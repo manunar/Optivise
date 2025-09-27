@@ -49,9 +49,9 @@ export default function ClientLoginPage() {
 
     setIsSubmitting(true);
     
-    const success = await signIn(formData);
+    const result = await signIn(formData);
     
-    if (success) {
+    if (result.success) {
       router.push(redirectTo);
     }
     

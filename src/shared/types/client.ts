@@ -76,8 +76,8 @@ export interface ClientAuthContext {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
-  signIn: (data: ClientLoginForm) => Promise<boolean>;
-  signUp: (data: ClientRegistrationForm) => Promise<boolean>;
+  signIn: (data: ClientLoginForm) => Promise<ClientAuthResponse>;
+  signUp: (data: ClientRegistrationForm) => Promise<ClientAuthResponse>;
   signOut: () => Promise<void>;
   updateProfile: (data: ClientProfile) => Promise<boolean>;
   refreshClient: () => Promise<void>;
