@@ -71,9 +71,9 @@ export default function ClientRegisterPage() {
 
     setIsSubmitting(true);
     
-    const result = await signUp(formData);
+    const success = await signUp(formData);
     
-    if (result.success) {
+    if (success) {
       // Rediriger vers la page de vérification email ou dashboard
       router.push('/client/verify-email');
     }
