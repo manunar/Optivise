@@ -43,6 +43,7 @@ export default function ClientRegisterPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   
   const { signUp, error, loading, isAuthenticated } = useClientAuthContext();
   const router = useRouter();
@@ -70,8 +71,21 @@ export default function ClientRegisterPage() {
     if (isSubmitting || !isFormValid()) return;
 
     setIsSubmitting(true);
-    
-    const result = await signUp(formData);
+    // Normaliser et valider l'email côté client
+    const normalizedEmail = formData.email?.toString().trim().toLowerCase();
+    const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail || '');
+
+    if (!emailIsValid) {
+      setFormError('Adresse email invalide. Vérifiez le format (ex: jean.dupont@exemple.com).');
+      setIsSubmitting(false);
+      return;
+    }
+
+    setFormError(null);
+
+    const payload = { ...formData, email: normalizedEmail };
+
+    const result = await signUp(payload);
     
     if (result.success) {
       // Rediriger vers la page de vérification email ou dashboard
@@ -86,6 +100,8 @@ export default function ClientRegisterPage() {
   ) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData(prev => ({ ...prev, [field]: value }));
+    // nettoyer l'erreur locale quand l'utilisateur modifie l'email
+    if (field === 'email') setFormError(null);
   };
 
   const handleSelectChange = (field: keyof ClientRegistrationForm) => (value: string) => {
@@ -346,7 +362,16 @@ export default function ClientRegisterPage() {
               </div>
 
               {/* Erreur */}
-              {error && (
+              {formError && (
+                <Alert className="border-red-700 bg-red-900/20">
+                  <AlertCircle className="h-4 w-4 text-red-400" />
+                  <AlertDescription className="text-red-300">
+                    {formError}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {error && !formError && (
                 <Alert className="border-red-700 bg-red-900/20">
                   <AlertCircle className="h-4 w-4 text-red-400" />
                   <AlertDescription className="text-red-300">

@@ -81,11 +81,13 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (updateError) {
-        console.error('Erreur mise à jour client:', updateError);
-        return NextResponse.json(
-          { error: 'Erreur lors de la création du compte' },
-          { status: 500 }
-        );
+          console.error('Erreur mise à jour client:', updateError);
+          // En dev, renvoyer le détail de l'erreur pour faciliter le debug
+          const payload: any = { error: 'Erreur lors de la création du compte' };
+          if (process.env.NODE_ENV !== 'production') {
+            payload.detail = updateError;
+          }
+          return NextResponse.json(payload, { status: 500 });
       }
 
       return NextResponse.json({
@@ -126,10 +128,12 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Erreur création client:', insertError);
-      return NextResponse.json(
-        { error: 'Erreur lors de la création du compte' },
-        { status: 500 }
-      );
+      // En dev, renvoyer le détail de l'erreur pour faciliter le debug
+      const payload: any = { error: 'Erreur lors de la création du compte' };
+      if (process.env.NODE_ENV !== 'production') {
+        payload.detail = insertError;
+      }
+      return NextResponse.json(payload, { status: 500 });
     }
 
     // Lier les demandes existantes par email

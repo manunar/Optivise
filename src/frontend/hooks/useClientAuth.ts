@@ -21,6 +21,13 @@ export function useClientAuth() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
+  // Validation simple d'email côté client
+  const isValidEmail = (email?: string) => {
+    if (!email) return false;
+    // simple validation : 1@2.tld (no spaces)
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   // Charger le client au montage
   useEffect(() => {
     loadClient();
@@ -107,6 +114,14 @@ export function useClientAuth() {
       setError(null);
       setLoading(true);
 
+      // Validation client de l'email
+      if (!isValidEmail(data.email)) {
+        const errorMessage = 'Email invalide';
+        console.warn('🔐 [WARN] Validation email échouée pour:', data.email);
+        setError(errorMessage);
+        return { success: false, error: { code: 'invalid_email', message: errorMessage } };
+      }
+
       // 1. Créer le compte Supabase Auth
       console.log('🔐 [DEBUG] Tentative création compte:', {
         email: data.email,
@@ -115,7 +130,7 @@ export function useClientAuth() {
         prenom: data.prenom,
         entreprise: data.entreprise
       });
-      
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -127,8 +142,12 @@ export function useClientAuth() {
           }
         }
       });
-      
-      console.log('🔐 [DEBUG] Réponse Supabase:', { authData, authError });
+
+      // Log plus détaillé pour aider au debug (ne pas exposer en prod)
+      console.log('🔐 [DEBUG] Réponse Supabase:', {
+        authData,
+        authError: authError ? { message: authError.message, status: (authError as any).status } : null
+      });
 
       if (authError) {
         const errorMessage = authError.message === 'User already registered' 
@@ -162,17 +181,21 @@ export function useClientAuth() {
         });
 
         if (!response.ok) {
-          // Si erreur création profil, supprimer le compte auth
+          // Si erreur création profil, récupérer le body pour debug, supprimer le compte auth
+          const text = await response.text().catch(() => null);
+          console.error('🔐 [ERROR] /api/client/register responded with non-OK:', text);
           await supabase.auth.signOut();
-          throw new Error('Erreur lors de la création du profil');
+          const message = text ? `Erreur lors de la création du profil: ${text}` : 'Erreur lors de la création du profil';
+          setError(message);
+          return { success: false, error: { code: 'server_profile_creation', message } };
         }
 
         const clientData = await response.json();
-        
-        return { 
-          success: true, 
+
+        return {
+          success: true,
           client: clientData.client,
-          session: authData.session 
+          session: authData.session
         };
       }
 
