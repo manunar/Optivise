@@ -36,13 +36,41 @@ interface OptionRecommandee {
   description: string;
   description_courte?: string;
   categorie: string;
-  prix_ht: number;
+  prix_ht?: number;        // Fallback pour anciennes données
+  prix_min_ht?: number;    // Prix minimum de la fourchette
+  prix_max_ht?: number;    // Prix maximum de la fourchette
   type_option: string;
   code: string;
   temps_realisation_jours?: number;
   obligatoire?: boolean;
   actif?: boolean;
 }
+
+// Fonctions utilitaires pour gérer les prix
+const formatPriceDisplay = (option: OptionRecommandee): string => {
+  const { prix_min_ht, prix_max_ht, prix_ht } = option;
+  
+  if (prix_min_ht !== undefined && prix_max_ht !== undefined) {
+    if (prix_min_ht === prix_max_ht) {
+      return prix_min_ht.toLocaleString();
+    }
+    return `${prix_min_ht.toLocaleString()} - ${prix_max_ht.toLocaleString()}`;
+  }
+  
+  if (prix_ht !== undefined) {
+    return prix_ht.toLocaleString();
+  }
+  
+  return "Sur devis";
+};
+
+const getMinPrice = (option: OptionRecommandee): number => {
+  return option.prix_min_ht ?? option.prix_ht ?? 0;
+};
+
+const getMaxPrice = (option: OptionRecommandee): number => {
+  return option.prix_max_ht ?? option.prix_ht ?? 0;
+};
 
 const RecommandationsPage = () => {
   const router = useRouter();
@@ -174,10 +202,20 @@ const RecommandationsPage = () => {
   };
 
   const calculateTotal = () => {
-    return Array.from(selectedOptions).reduce((total, optionId) => {
+    const { totalMin, totalMax } = Array.from(selectedOptions).reduce((acc, optionId) => {
       const option = allOptions.find((o: OptionRecommandee) => o.id === optionId);
-      return total + (option?.prix_ht || 0);
-    }, 0);
+      if (!option) return acc;
+      
+      const min = getMinPrice(option);
+      const max = getMaxPrice(option);
+      
+      return {
+        totalMin: acc.totalMin + min,
+        totalMax: acc.totalMax + max
+      };
+    }, { totalMin: 0, totalMax: 0 });
+    
+    return { totalMin, totalMax };
   };
 
   const getCategories = () => {
@@ -280,7 +318,14 @@ const RecommandationsPage = () => {
               <div className="text-sm text-gray-400">Sélectionnées</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-blue-400">{calculateTotal().toLocaleString()}€</div>
+              <div className="text-2xl font-bold text-blue-400">
+                {(() => {
+                  const { totalMin, totalMax } = calculateTotal();
+                  return totalMin === totalMax 
+                    ? `${totalMin.toLocaleString()}€` 
+                    : `${totalMin.toLocaleString()}€ - ${totalMax.toLocaleString()}€`;
+                })()}
+              </div>
               <div className="text-sm text-gray-400">Total estimé</div>
             </div>
           </div>
@@ -491,7 +536,7 @@ const RecommandationsPage = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-gray-300 text-sm">Prix</span>
                         <span className="text-amber-400 font-bold">
-                          {option.prix_ht.toLocaleString()}€
+                          {formatPriceDisplay(option)}€
                         </span>
                       </div>
                       
@@ -552,7 +597,14 @@ const RecommandationsPage = () => {
                 </h3>
                 <p className="text-gray-400">
                   {selectedOptions.size} option{selectedOptions.size > 1 ? 's' : ''} sélectionnée{selectedOptions.size > 1 ? 's' : ''} • 
-                  Total estimé: <span className="text-amber-400 font-bold">{calculateTotal().toLocaleString()}€</span>
+                  Total estimé: <span className="text-amber-400 font-bold">
+                    {(() => {
+                      const { totalMin, totalMax } = calculateTotal();
+                      return totalMin === totalMax 
+                        ? `${totalMin.toLocaleString()}€` 
+                        : `${totalMin.toLocaleString()}€ - ${totalMax.toLocaleString()}€`;
+                    })()}
+                  </span>
                 </p>
               </div>
               

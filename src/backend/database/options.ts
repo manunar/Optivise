@@ -141,11 +141,21 @@ export async function getOptionsForSecteur(secteur: string): Promise<ApiResponse
 export function calculateConfigurationPrice(
   options: OptionsCatalogue[], 
   selectedOptionsIds: string[]
-): { prixHT: number; prixTTC: number; delaiJours: number } {
+): { prixMinHT: number; prixMaxHT: number; prixMinTTC: number; prixMaxTTC: number; delaiJours: number } {
   const selectedOptions = options.filter(opt => selectedOptionsIds.includes(opt.id));
   
-  const prixHT = selectedOptions.reduce((total, option) => total + option.prix_ht, 0);
-  const prixTTC = prixHT * 1.21; // TVA 21% Belgique
+  const prixMinHT = selectedOptions.reduce((total, option) => {
+    const prix = option.prix_min_ht ?? option.prix_ht ?? 0;
+    return total + prix;
+  }, 0);
+  
+  const prixMaxHT = selectedOptions.reduce((total, option) => {
+    const prix = option.prix_max_ht ?? option.prix_ht ?? 0;
+    return total + prix;
+  }, 0);
+  
+  const prixMinTTC = prixMinHT * 1.21; // TVA 21% Belgique
+  const prixMaxTTC = prixMaxHT * 1.21;
   
   const delaiJours = Math.max(
     ...selectedOptions.map(opt => opt.temps_realisation_jours || 1),
@@ -153,8 +163,10 @@ export function calculateConfigurationPrice(
   );
   
   return {
-    prixHT: Math.round(prixHT * 100) / 100,
-    prixTTC: Math.round(prixTTC * 100) / 100,
+    prixMinHT: Math.round(prixMinHT * 100) / 100,
+    prixMaxHT: Math.round(prixMaxHT * 100) / 100,
+    prixMinTTC: Math.round(prixMinTTC * 100) / 100,
+    prixMaxTTC: Math.round(prixMaxTTC * 100) / 100,
     delaiJours
   };
 }
@@ -230,7 +242,9 @@ export function enrichOptionsForConfigurator(
     code: option.code,
     nom: option.nom,
     description_courte: option.description_courte || '',
-    prix_ht: option.prix_ht,
+    prix_ht: option.prix_ht ?? 0,
+    prix_min_ht: option.prix_min_ht ?? undefined,
+    prix_max_ht: option.prix_max_ht ?? undefined,
     type_option: option.type_option,
     categorie: option.categorie,
     obligatoire: option.obligatoire || false,

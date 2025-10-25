@@ -9,7 +9,9 @@ interface Option {
   id: string;
   nom: string;
   description: string;
-  prix_ht: number;
+  prix_ht?: number;        // Fallback pour anciennes données
+  prix_min_ht?: number;    // Prix minimum de la fourchette
+  prix_max_ht?: number;    // Prix maximum de la fourchette
   categorie: string;
   type_option: string;
   obligatoire: boolean;
@@ -127,11 +129,25 @@ export function useSelectedOptions(optionIds: string[]) {
     }
   }, [options, loading, optionIds]);
 
+  // Calculer les totaux min et max
+  const { totalMin, totalMax } = selectedOptions.reduce((acc, opt) => {
+    const min = opt.prix_min_ht ?? opt.prix_ht ?? 0;
+    const max = opt.prix_max_ht ?? opt.prix_ht ?? 0;
+    return {
+      totalMin: acc.totalMin + min,
+      totalMax: acc.totalMax + max
+    };
+  }, { totalMin: 0, totalMax: 0 });
+
   return {
     selectedOptions,
     loading,
     error,
-    totalPrice: selectedOptions.reduce((sum, opt) => sum + opt.prix_ht, 0),
-    totalPriceTTC: selectedOptions.reduce((sum, opt) => sum + opt.prix_ht, 0) * 1.2
+    totalPrice: totalMin, // Utiliser le prix minimum pour compatibilité
+    totalPriceTTC: totalMin * 1.2,
+    totalMin,
+    totalMax,
+    totalMinTTC: totalMin * 1.2,
+    totalMaxTTC: totalMax * 1.2
   };
 }

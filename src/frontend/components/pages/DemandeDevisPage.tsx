@@ -32,10 +32,12 @@ interface OptionSelectionnee {
   nom: string;
   description: string;
   description_courte?: string;
-  prix_ht: number;
+  prix_ht?: number;        // Fallback pour anciennes données
+  prix_min_ht?: number;    // Prix minimum de la fourchette
+  prix_max_ht?: number;    // Prix maximum de la fourchette
   categorie: string;
   type_option: string;
-  code: string;
+  code?: string;           // Optionnel car peut ne pas être présent
 }
 
 interface FormData {
@@ -46,6 +48,32 @@ interface FormData {
   entreprise: string;
   message: string;
 }
+
+// Fonctions utilitaires pour gérer les prix
+const formatPriceDisplay = (option: OptionSelectionnee): string => {
+  const { prix_min_ht, prix_max_ht, prix_ht } = option;
+  
+  if (prix_min_ht !== undefined && prix_max_ht !== undefined) {
+    if (prix_min_ht === prix_max_ht) {
+      return prix_min_ht.toLocaleString();
+    }
+    return `${prix_min_ht.toLocaleString()} - ${prix_max_ht.toLocaleString()}`;
+  }
+  
+  if (prix_ht !== undefined) {
+    return prix_ht.toLocaleString();
+  }
+  
+  return "Sur devis";
+};
+
+const getMinPrice = (option: OptionSelectionnee): number => {
+  return option.prix_min_ht ?? option.prix_ht ?? 0;
+};
+
+const getMaxPrice = (option: OptionSelectionnee): number => {
+  return option.prix_max_ht ?? option.prix_ht ?? 0;
+};
 
 const DemandeDevisPage = () => {
   const router = useRouter();
@@ -59,7 +87,14 @@ const DemandeDevisPage = () => {
   const sessionId = searchParams.get('session');
   
   // Utiliser le hook personnalisé pour les options
-  const { selectedOptions: options, loading, error: optionsError, totalPrice } = useSelectedOptions(optionIds);
+  const { 
+    selectedOptions: options, 
+    loading, 
+    error: optionsError, 
+    totalPrice,
+    totalMin,
+    totalMax 
+  } = useSelectedOptions(optionIds);
   
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,9 +155,12 @@ const DemandeDevisPage = () => {
           options_selectionnees: options.map(opt => ({
             id: opt.id,
             nom: opt.nom,
-            prix: opt.prix_ht
+            prix_min: getMinPrice(opt),
+            prix_max: getMaxPrice(opt)
           })),
           total_estime: prixHT,
+          total_min: totalMin,
+          total_max: totalMax,
           source: 'configurateur_assisté'
         },
         prix_estime_ht: prixHT,
@@ -378,7 +416,7 @@ const DemandeDevisPage = () => {
                         <p className="text-gray-400 text-xs">{option.categorie}</p>
                       </div>
                       <div className="text-amber-400 font-bold">
-                        {option.prix_ht.toLocaleString()}€
+                        {formatPriceDisplay(option)}€
                       </div>
                     </div>
                   ))}
@@ -386,7 +424,12 @@ const DemandeDevisPage = () => {
                   <div className="pt-4 border-t border-gray-600">
                     <div className="flex items-center justify-between text-lg font-bold">
                       <span className="text-white">Total estimé</span>
-                      <span className="text-amber-400">{total.toLocaleString()}€</span>
+                      <span className="text-amber-400">
+                        {totalMin === totalMax 
+                          ? `${totalMin.toLocaleString()}€` 
+                          : `${totalMin.toLocaleString()}€ - ${totalMax.toLocaleString()}€`
+                        }
+                      </span>
                     </div>
                   </div>
                 </CardContent>

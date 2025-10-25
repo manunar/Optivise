@@ -25,6 +25,8 @@ export interface ConfigurationOption {
   nom: string;
   description_courte: string;
   prix_ht: number;
+  prix_min_ht?: number;
+  prix_max_ht?: number;
   type_option: TypeOption;
   categorie: string | null;
   obligatoire: boolean;

@@ -27,11 +27,44 @@ type Option = {
   id: string;
   nom: string;
   description: string;
-  prix_ht: number;
+  prix_ht?: number;        // Fallback pour anciennes données
+  prix_min_ht?: number;    // Prix minimum de la fourchette
+  prix_max_ht?: number;    // Prix maximum de la fourchette
   categorie: string;
   type_option: string;
   obligatoire: boolean;
   actif: boolean;
+};
+
+// Fonction utilitaire pour formater l'affichage des prix
+const formatPriceDisplay = (option: Option): string => {
+  const { prix_min_ht, prix_max_ht, prix_ht } = option;
+  
+  // Si on a une fourchette de prix
+  if (prix_min_ht !== undefined && prix_max_ht !== undefined) {
+    if (prix_min_ht === prix_max_ht) {
+      return `${prix_min_ht}€`;
+    }
+    return `${prix_min_ht}€ - ${prix_max_ht}€`;
+  }
+  
+  // Fallback sur prix_ht si disponible
+  if (prix_ht !== undefined) {
+    return `${prix_ht}€`;
+  }
+  
+  // Aucun prix disponible
+  return "Sur devis";
+};
+
+// Fonction pour obtenir le prix min d'une option (pour les calculs)
+const getMinPrice = (option: Option): number => {
+  return option.prix_min_ht ?? option.prix_ht ?? 0;
+};
+
+// Fonction pour obtenir le prix max d'une option (pour les calculs)
+const getMaxPrice = (option: Option): number => {
+  return option.prix_max_ht ?? option.prix_ht ?? 0;
 };
 
 // Configuration des types d'options avec icônes et couleurs
@@ -125,11 +158,19 @@ const ConfigurateurPage = () => {
     return acc;
   }, {} as Record<string, Option[]>);
 
-  // Calculer le total
-  const totalPrice = selectedOptions.reduce((total, optionId) => {
+  // Calculer la fourchette de prix totale
+  const { totalMin, totalMax } = selectedOptions.reduce((acc, optionId) => {
     const option = options.find(opt => opt.id === optionId);
-    return total + (option?.prix_ht || 0);
-  }, 0);
+    if (!option) return acc;
+    
+    const min = getMinPrice(option);
+    const max = getMaxPrice(option);
+    
+    return {
+      totalMin: acc.totalMin + min,
+      totalMax: acc.totalMax + max
+    };
+  }, { totalMin: 0, totalMax: 0 });
 
   const handleContinue = () => {
     // Construire l'URL avec les options sélectionnées
@@ -247,7 +288,7 @@ const ConfigurateurPage = () => {
                       {optionsByType[typeKey]?.map((option) => (
                         <Card
                           key={option.id}
-                          className={`border transition-all duration-300 cursor-pointer ${
+                          className={`border transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:shadow-xl ${
                             selectedOptions.includes(option.id)
                               ? 'border-gray-600 bg-amber-500/5 shadow-lg shadow-amber-500/20'
                               : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
@@ -255,15 +296,15 @@ const ConfigurateurPage = () => {
                           onClick={() => handleOptionToggle(option.id)}
                         >
                           <CardHeader className="pb-3">
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-start space-x-3">
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex items-start space-x-3 flex-1 min-w-0">
                                 <Checkbox
                                   checked={selectedOptions.includes(option.id)}
                                   disabled={option.obligatoire}
-                                  className="mt-1 pointer-events-none"
+                                  className="mt-1 pointer-events-none flex-shrink-0"
                                 />
-                                <div className="flex-1">
-                                  <div className="flex items-center space-x-3 mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center flex-wrap gap-2 mb-2">
                                     <CardTitle className="text-white text-lg">
                                       {option.nom}
                                     </CardTitle>
@@ -271,7 +312,7 @@ const ConfigurateurPage = () => {
                                       {option.categorie}
                                     </Badge>
                                     {option.obligatoire && (
-                                      <Badge variant="destructive" className="mt-1">
+                                      <Badge variant="destructive">
                                         Obligatoire
                                       </Badge>
                                     )}
@@ -281,9 +322,9 @@ const ConfigurateurPage = () => {
                                   </p>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <div className="text-2xl font-bold text-amber-400">
-                                  {option.prix_ht}€
+                              <div className="text-right flex-shrink-0 min-w-[120px]">
+                                <div className="text-xl font-bold text-amber-400 whitespace-nowrap">
+                                  {formatPriceDisplay(option)}
                                 </div>
                                 <div className="text-xs text-gray-500">
                                   HT
@@ -319,7 +360,10 @@ const ConfigurateurPage = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-white font-bold">Total HT</span>
                     <span className="text-2xl font-bold text-amber-400">
-                      {totalPrice}€
+                      {totalMin === totalMax 
+                        ? `${totalMin}€` 
+                        : `${totalMin}€ - ${totalMax}€`
+                      }
                     </span>
                   </div>
                 </div>
@@ -339,7 +383,7 @@ const ConfigurateurPage = () => {
                           </Badge>
                         </div>
                         <span className="text-amber-400 font-bold">
-                          {option.prix_ht}€
+                          {formatPriceDisplay(option)}
                         </span>
                       </div>
                     );
